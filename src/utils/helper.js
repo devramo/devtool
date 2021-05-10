@@ -29,11 +29,11 @@ export const executeCommand = (cmd, options = {}, callback = () => {}) => {
   let output
   const childProcess = exec(cmd, options)
   childProcess.stdout.on('data', data => {
-    console.log(`stdout: ${data}`)
+    // console.log(`stdout: ${data}`)
     output = data
   })
   childProcess.stderr.on('data', data => {
-    console.error(`stderr: ${data}`)
+    // console.error(`stderr: ${data}`)
     error = data
   })
 

@@ -3,7 +3,6 @@
 import { app, protocol, BrowserWindow, Menu } from 'electron'
 import { createProtocol } from 'vue-cli-plugin-electron-builder/lib'
 import installExtension, { VUEJS_DEVTOOLS } from 'electron-devtools-installer'
-import path from 'path'
 
 const isDevelopment = process.env.NODE_ENV !== 'production'
 
@@ -17,13 +16,10 @@ async function createWindow() {
   // Create the browser window.
   const win = new BrowserWindow({
     title: 'DEVTOOL',
-    // eslint-disable-next-line no-undef
-    icon: path.join(__static, '512x512.png'),
-    // frame: false,
     closable: true,
     center: true,
-    width: 900,
-    height: 600,
+    width: 1000,
+    height: 700,
     webPreferences: {
       // To load local resource
       webSecurity: false,

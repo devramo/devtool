@@ -2,6 +2,8 @@
   "name": "devtool",
   "version": "1.0.0",
   "private": true,
+  "description": "devtool for java environment using wildfly, tomcat and eclipse",
+  "author": {"name": "devod"},
   "scripts": {
     "serve": "vue-cli-service serve",
     "build": "vue-cli-service build",
