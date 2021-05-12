@@ -27,6 +27,8 @@ export const selectFolder = defaultPath => {
 export const executeCommand = (cmd, options = {}, callback = () => {}) => {
   let error
   let output
+  console.log(cmd)
+  options && console.log(options['cwd'])
   const childProcess = exec(cmd, options)
   childProcess.stdout.on('data', data => {
     // console.log(`stdout: ${data}`)

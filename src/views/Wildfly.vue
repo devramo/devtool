@@ -93,8 +93,7 @@ export default {
         state.error = "Can't find standalone.xml file in WILDFLY standalone configuration folder"
       }
       const embededSeverScript = getStatic('embed-server-script.txt')
-      const cmd = 'jboss-cli.bat --file=' + embededSeverScript
-      console.log('executing command line:', cmd)
+      const cmd = `jboss-cli --file=${embededSeverScript}`
       const cwd = state.folder + '/bin'
 
       waiting.value = true
