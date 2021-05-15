@@ -42,7 +42,7 @@ async function createWindow() {
 
   //CUSTOM
   // eslint-disable-next-line no-undef
-  win.webContents.send('static-path', __static)
+  win.webContents.send('environment', { staticPath: __static, os: process.env.os })
 }
 
 // Quit when all windows are closed.

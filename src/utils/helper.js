@@ -4,14 +4,17 @@ import path from 'path'
 
 const isBuild = process.env.NODE_ENV === 'production'
 
+let __os
 let __static
-ipcRenderer.on('static-path', (event, staticPath) => {
+ipcRenderer.on('environment', (event, { staticPath, os }) => {
   __static = staticPath
+  __os = os
 })
 
 export const getStatic = file => {
   return path.join(isBuild ? __dirname : __static, '../extraResources', file)
 }
+export const getOS = () => __os
 
 export const selectFolder = defaultPath => {
   if (!defaultPath) {
@@ -28,7 +31,6 @@ export const executeCommand = (cmd, options = {}, callback = () => {}) => {
   let error
   let output
   console.log(cmd)
-  options && console.log(options['cwd'])
   const childProcess = exec(cmd, options)
   childProcess.stdout.on('data', data => {
     // console.log(`stdout: ${data}`)

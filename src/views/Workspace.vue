@@ -8,7 +8,7 @@
       </transition-group>
     </div>
 
-    <div v-if="state.folder && !state.error" style="margin-top: 1rem">
+    <div v-if="state.folder" style="margin-top: 1rem">
       <button @click="toggle($event)" v-if="state.log4j2Files.length">
         {{ state.consoleLogsActivated ? 'Desactivate' : 'Activate' }} all ({{ state.log4j2Files.length }}) console logs
         <spinner class="spinner" />
@@ -22,7 +22,7 @@
       </transition-group>
     </div>
 
-    <div v-if="state.folder && !state.error && state.svnFolders.length">
+    <div v-if="state.folder && state.svnFolders.length">
       <div class="info" style="margin-top: 1rem">
         <transition-group name="slide-fade">
           <div class="error" v-if="state.error">{{ state.error }}</div>
@@ -41,7 +41,7 @@
           </div>
         </transition>
       </div>
-      <transition-group name="fade" v-show="state.svnClientFound" tag="div">
+      <div>
         <button
           v-if="!state.svnIgnoreDone"
           @click="changeSvnIgnore($event)"
@@ -50,25 +50,27 @@
           Set SVN ignore list
           <spinner class="spinner" />
         </button>
-        <div class="info" v-else>
-          <div v-if="Object.keys(state.changes).length">
-            SVN changes added:<br />
-            <code>
-              <pre>{{ state.changes }}</pre>
-            </code>
+        <transition-group name="fade" v-show="state.svnClientFound" tag="div" mode="out-in">
+          <div class="info" v-if="state.svnIgnoreDone">
+            <div v-if="Object.keys(state.changes).length">
+              SVN changes added:<br />
+              <code>
+                <pre>{{ state.changes }}</pre>
+              </code>
+            </div>
+            <div v-else>
+              Nothing to do: target, .project, .classpath, .settings and log4j2.xml are already ignored by SVN.
+            </div>
           </div>
-          <div v-else>
-            Nothing to do: target, .project, .classpath, .settings and log4j2.xml are already ignored by SVN.
-          </div>
-        </div>
-      </transition-group>
+        </transition-group>
+      </div>
     </div>
   </div>
 </template>
 
 <script>
 import { state } from '@/store/workspace-setup-store'
-import { selectFolder, executeCommand } from '@/utils/helper'
+import { selectFolder, executeCommand, getOS } from '@/utils/helper'
 import fs from 'fs'
 import path from 'path'
 import findit from 'findit'
@@ -185,20 +187,40 @@ export default {
     }
 
     function changeSvnIgnore(event) {
+      const SVN_IGNORE = 'svn:ignore'
+      const SVN_GLOBAL_IGNORES = 'svn:global-ignores'
+      const WINDOWS_OS = !!getOS().match(/win/i)
+      const ECHO_EMPTY_LINE = WINDOWS_OS ? 'echo.' : 'echo ""'
       let button = event.target
       button.disabled = true
       let i = 0
       state.svnFolders.forEach(svnFolder => {
         let cmd = 'svn proplist -v'
+        let lastPropertiesKey
+        let svnProperties
         executeCommand(cmd, { cwd: svnFolder }, ({ error, output }) => {
           error && (state.error = error)
 
           if (!state.error) {
-            if (output.indexOf('log4j2.xml') == -1) {
-              let cmd = `svn propset svn:global-ignores "log4j2.xml" ${svnFolder}`
-              if (output.indexOf('svn:global-ignores') > -1) {
-                cmd = `svn propedit svn:global-ignores ${svnFolder} --editor-cmd "(echo "" && echo "log4j2.xml") >>"`
-              }
+            console.log('output', output)
+            svnProperties = output
+              .split(/(\r|\n)+/)
+              .map(e => e.trim())
+              .filter(e => e && !e.match(/Properties on/))
+              .reduce((total, num) => {
+                if (num.match(/svn:/)) {
+                  total[num] = []
+                  lastPropertiesKey = num
+                } else total[lastPropertiesKey].push(num)
+                return total
+              }, {})
+
+            // svn:global-ignores
+            const globalIgnoreList = svnProperties[SVN_GLOBAL_IGNORES] ?? []
+            if (globalIgnoreList.indexOf('log4j2.xml') == -1) {
+              let cmd = (cmd = `svn propedit svn:global-ignores ${svnFolder} --editor-cmd "(${ECHO_EMPTY_LINE} && echo "log4j2.xml") ${
+                globalIgnoreList.length ? '>>' : '>'
+              }"`)
               executeCommand(cmd, { cwd: svnFolder }, ({ error }) => {
                 if (error) {
                   state.error = error
@@ -211,47 +233,40 @@ export default {
                 state.changes[basename(svnFolder)]['global-ignores'] = ['log4j2.xml']
               })
             }
-          }
-        })
 
-        if (!state.error) {
-          cmd = 'svn proplist -v'
-          executeCommand(cmd, { cwd: svnFolder }, ({ error, output }) => {
-            error && (state.error = error)
-            if (!state.error) {
-              const ignoredList = output.split(/\s+/)
-              const notAddedYetList = IGNORED_SVN_LIST.filter(v => ignoredList.indexOf(v) === -1)
-              if (notAddedYetList.length) {
-                cmd = `svn propedit svn:ignore ${svnFolder} --editor-cmd "(${
-                  IGNORED_SVN_LIST.length > notAddedYetList.length ? 'echo "" && ' : ''
-                }${notAddedYetList.map(v => 'echo ' + v).join(' && echo "" && ')}) >>"`
-                executeCommand(cmd, { cwd: svnFolder }, ({ error }) => {
-                  i++
-                  if (i >= state.svnFolders.length) {
-                    button.disabled = false
-                    state.svnIgnoreDone = true
-                  }
-                  if (error) {
-                    state.error = error
-                    return
-                  }
-                  if (!state.changes[basename(svnFolder)]) {
-                    state.changes[basename(svnFolder)] = {}
-                  }
-                  state.changes[basename(svnFolder)].ignore = notAddedYetList
-                })
-              } else {
+            // svn:ignore
+            const ignoredList = svnProperties[SVN_IGNORE] ?? []
+            const notAddedYetList = IGNORED_SVN_LIST.filter(v => ignoredList.indexOf(v) === -1)
+            if (notAddedYetList.length) {
+              cmd = `svn propedit svn:ignore ${svnFolder} --editor-cmd "(${
+                ignoredList.length && notAddedYetList.length ? `${ECHO_EMPTY_LINE} && ` : ''
+              }${notAddedYetList.map(v => 'echo ' + v).join(` && ${ECHO_EMPTY_LINE} && `)}) ${
+                ignoredList.length ? '>>' : '>'
+              }"`
+              executeCommand(cmd, { cwd: svnFolder }, ({ error }) => {
                 i++
                 if (i >= state.svnFolders.length) {
                   button.disabled = false
                   state.svnIgnoreDone = true
                 }
+                if (error) {
+                  state.error = error
+                  return
+                }
+                if (!state.changes[basename(svnFolder)]) {
+                  state.changes[basename(svnFolder)] = {}
+                }
+                state.changes[basename(svnFolder)].ignore = notAddedYetList
+              })
+            } else {
+              i++
+              if (i >= state.svnFolders.length) {
+                button.disabled = false
+                state.svnIgnoreDone = true
               }
             }
-          })
-        }
-
-        console.log(`SVN folder: "${svnFolder}`)
+          }
+        })
       })
     }
 
