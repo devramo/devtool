@@ -1,20 +1,19 @@
 import { ipcRenderer, remote } from 'electron'
 import { exec } from 'child_process'
 import path from 'path'
+import os from 'os'
 
 const isBuild = process.env.NODE_ENV === 'production'
 
-let __os
 let __static
-ipcRenderer.on('environment', (event, { staticPath, os }) => {
+ipcRenderer.on('environment', (event, { staticPath }) => {
   __static = staticPath
-  __os = os
 })
 
 export const getStatic = file => {
   return path.join(isBuild ? __dirname : __static, '../extraResources', file)
 }
-export const getOS = () => __os
+export const getOS = () => os.type()
 
 export const selectFolder = defaultPath => {
   if (!defaultPath) {

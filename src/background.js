@@ -1,6 +1,6 @@
 'use strict'
 
-import { app, protocol, BrowserWindow, Menu } from 'electron'
+import { app, protocol, BrowserWindow, Menu, ipcMain } from 'electron'
 import { createProtocol } from 'vue-cli-plugin-electron-builder/lib'
 import installExtension, { VUEJS_DEVTOOLS } from 'electron-devtools-installer'
 
@@ -42,8 +42,12 @@ async function createWindow() {
 
   //CUSTOM
   // eslint-disable-next-line no-undef
-  win.webContents.send('environment', { staticPath: __static, os: process.env.os })
+  win.webContents.send('environment', { staticPath: __static })
 }
+//CUSTOM
+ipcMain.on('open-devtools', async () => {
+  BrowserWindow.getFocusedWindow().webContents.openDevTools()
+})
 
 // Quit when all windows are closed.
 app.on('window-all-closed', () => {

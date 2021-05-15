@@ -12,7 +12,7 @@
         <div class="error" v-if="state.error">{{ state.error }}</div>
       </transition>
       <transition-group name="slide-fade" tag="ul">
-        <li v-if="state.moduleAdded">Modules added</li>
+        <li v-if="state.moduleAdded">Module added</li>
         <li v-if="state.configAdded">Configuration added in 'wipo-standalone-full.xml'</li>
       </transition-group>
     </div>
