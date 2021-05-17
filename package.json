@@ -17,10 +17,8 @@
   },
   "main": "background.js",
   "dependencies": {
-    "adm-zip": "^0.5.5",
     "core-js": "^3.6.5",
     "findit": "^2.0.0",
-    "svn-spawn": "^0.1.6",
     "vue": "^3.0.0",
     "vue-router": "^4.0.0-0"
   },
