@@ -168,12 +168,12 @@ export default {
           let result
           if (activated) {
             result = data.replace(
-              /(\s*)<AppenderRef\s*ref\s*=\s*"console"\s*\/>(\s*)/,
+              /^(\s*)<AppenderRef\s*ref\s*=\s*"console"\s*\/>(\s*)$/,
               '$1<!-- <AppenderRef ref="console" /> -->$2'
             )
           } else {
             result = data.replace(
-              /(\s*)<!--\s*<AppenderRef\s*ref\s*=\s*"console"\s*\/>\s*-->(\s*)/,
+              /^(\s*)<!--\s*<AppenderRef\s*ref\s*=\s*"console"\s*\/>\s*-->(\s*)$/,
               '$1<AppenderRef ref="console" />$2'
             )
           }
